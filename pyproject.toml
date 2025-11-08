@@ -1,0 +1,34 @@
+[project]
+name = "zh-bn-legal-corpus-backend"
+version = "0.1.0"
+description = "Backend services for the Bengali-Chinese legal terminology platform"
+authors = [
+    { name = "OpenAI Assistant" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sqlalchemy>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "pydantic-settings>=2.2",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "httpx>=0.27",
+    "pytest-asyncio>=0.23",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
