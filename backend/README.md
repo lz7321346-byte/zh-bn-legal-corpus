@@ -43,3 +43,5 @@ This directory contains the FastAPI backend for the Bengali-Chinese legal termin
    ```bash
    docker compose down
    ```
+
+术语数据默认存储在 `backend/data/terms.json` 中，前端上传的新术语会自动合并到该文件，便于后续离线使用。
