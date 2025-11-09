@@ -43,3 +43,5 @@ This directory contains the FastAPI backend for the Bengali-Chinese legal termin
    ```bash
    docker compose down
    ```
+
+术语数据默认存储在 `backend/data/terms.json` 中，前端上传的新术语会自动合并到该文件，便于后续离线使用。**注意：** 默认的 Docker Compose 配置会以只读方式挂载 `./backend` 目录（`./backend:/app/backend:ro`），因此容器模式下的上传接口无法写入该文件。若要在 Docker 工作流中持久化术语，请移除挂载路径的 `:ro` 或改为挂载 `./backend/data:/app/backend/data` 等可写目录；否则请使用本地 Python 工作流来导入术语数据。
