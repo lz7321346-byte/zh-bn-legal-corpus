@@ -6,6 +6,8 @@ from io import BytesIO
 from pathlib import Path
 
 from docx import Document
+from typing import Literal
+
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from openpyxl import load_workbook
 
@@ -13,7 +15,7 @@ from ..models.terms import Term, TermMergeResult, TermsRepository
 
 router = APIRouter(prefix="/terms", tags=["terms"])
 
-_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "terms.json"
+_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "terms.json"
 _repository = TermsRepository(_DATA_PATH)
 
 
@@ -97,12 +99,23 @@ def _import_terms_from_file(upload: UploadFile) -> TermMergeResult:
     return _repository.merge_terms(terms)
 
 
+Scope = Literal["zh", "bn", "en", "all"]
+
+
 @router.get("", response_model=list[Term], summary="Search terms")
-async def search_terms(q: str | None = Query(default=None, description="Keyword to search for")) -> list[Term]:
+async def search_terms(
+    q: str | None = Query(default=None, description="Keyword to search for"),
+    scope: Scope = Query(
+        default="all",
+        description="Limit the search to a specific language field",
+    ),
+) -> list[Term]:
     """Perform a fuzzy search over the stored terms."""
 
     try:
-        return _repository.search(q.strip() if q else None)
+        normalized_query = q.strip() if q else None
+        normalized_scope = None if scope == "all" else scope
+        return _repository.search(normalized_query, normalized_scope)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
