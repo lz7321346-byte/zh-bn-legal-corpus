@@ -23,33 +23,35 @@ main {
   min-height: 100vh;
 }
 
-.navbar {
-  background: linear-gradient(90deg, #1f2a44, #243b53);
-  color: #fff;
-  padding: 1rem 2rem;
+.site-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #d2d6dc;
+  color: #1f2933;
+  padding: 1.25rem 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1.5rem;
 }
 
-.nav-links {
+.site-nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.25rem;
   font-size: 0.95rem;
   letter-spacing: 0.03em;
 }
 
-.nav-links a {
-  color: rgba(255, 255, 255, 0.85);
+.site-nav a {
+  color: #475569;
   transition: color 0.2s ease-in-out;
 }
 
-.nav-links a:hover,
-.nav-links a:focus {
-  color: #fff;
+.site-nav a:hover,
+.site-nav a:focus {
+  color: #1f2933;
 }
 
-.layout {
+.hero {
   max-width: 1200px;
   margin: 2rem auto;
   padding: 0 1.5rem 3rem;
@@ -64,6 +66,19 @@ main {
 @media (max-width: 900px) {
   .content-wrapper {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 780px) {
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-nav {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.85rem;
   }
 }
 
@@ -102,11 +117,16 @@ main {
   letter-spacing: 0.02em;
 }
 
-.search-form {
+
+.filter-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  background-color: #f8fafc;
 }
 
 .search-input {
@@ -134,12 +154,27 @@ main {
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
 }
 
-.upload-panel {
+.import-panel {
   margin-top: 2rem;
   padding: 1.5rem;
   background-color: #f8fafc;
   border-radius: 10px;
   border: 1px solid #e4e7eb;
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-bar .primary-button {
+    width: 100%;
+  }
+
+  .site-header {
+    padding: 1rem 1.5rem;
+  }
 }
 
 .status-text {
@@ -153,10 +188,17 @@ main {
   font-weight: 600;
 }
 
-.results-list {
+.results-table {
   margin-top: 2rem;
   display: grid;
   gap: 1.25rem;
+}
+
+.pagination {
+  margin-top: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 .result-card {

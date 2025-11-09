@@ -108,7 +108,7 @@ export default function HomePage() {
 
   return (
     <>
-      <header className="navbar">
+      <header className="site-header">
         <div>
           <div style={{ fontSize: "1.2rem", fontWeight: 600 }}>
             中孟法律术语库
@@ -117,14 +117,14 @@ export default function HomePage() {
             Zh–Bn Legal Corpus
           </div>
         </div>
-        <nav className="nav-links">
+        <nav className="site-nav">
           <a href="#dictionary">Dictionary</a>
           <a href="#corpus">Corpus</a>
           <a href="#import">Data Import</a>
         </nav>
       </header>
       <main>
-        <div className="layout">
+        <div className="hero">
           <div className="content-wrapper">
             <aside className="sidebar">
               <h2>Legal Translation Hub</h2>
@@ -143,7 +143,7 @@ export default function HomePage() {
             </aside>
             <section className="main-content" id="dictionary">
               <h1 className="section-title">Search the terminology dictionary</h1>
-              <form className="search-form" onSubmit={onSearch}>
+              <form className="filter-bar" onSubmit={onSearch}>
                 <input
                   aria-label="Search terms"
                   className="search-input"
@@ -156,7 +156,7 @@ export default function HomePage() {
                 </button>
               </form>
 
-              <div className="upload-panel" id="import">
+              <div className="import-panel" id="import">
                 <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
                   Import new terms
                 </h2>
@@ -179,7 +179,7 @@ export default function HomePage() {
                 <div className="status-text">{infoMessage}</div>
               )}
 
-              <div className="results-list">
+              <div className="results-table">
                 {loading && <div>Loading…</div>}
                 {!loading && results.length === 0 && !error && (
                   <div className="empty-state">
