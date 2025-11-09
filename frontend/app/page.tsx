@@ -13,6 +13,7 @@ const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
 export default function HomePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Term[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +107,33 @@ export default function HomePage() {
     }
   };
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [results]);
+
+  const PAGE_SIZE = 20;
+  const hasResults = results.length > 0;
+  const totalPages = hasResults ? Math.ceil(results.length / PAGE_SIZE) : 0;
+  const safeCurrentPage = hasResults
+    ? Math.min(Math.max(1, currentPage), totalPages)
+    : 1;
+  const pageOffset = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedResults = hasResults
+    ? results.slice(pageOffset, pageOffset + PAGE_SIZE)
+    : [];
+
+  const goToPreviousPage = () => {
+    setCurrentPage((page) => Math.max(1, page - 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage((page) =>
+      totalPages === 0 ? 1 : Math.min(totalPages, page + 1)
+    );
+  };
+
+  const showPagination = hasResults;
+
   return (
     <>
       <header className="navbar">
@@ -187,8 +215,11 @@ export default function HomePage() {
                   </div>
                 )}
                 {!loading &&
-                  results.map((term, index) => (
-                    <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
+                  paginatedResults.map((term, index) => (
+                    <article
+                      className="result-card"
+                      key={`${term.zh}-${term.bn}-${pageOffset + index}`}
+                    >
                       <div>
                         <div className="term-label">中文</div>
                         <p className="term-value">{term.zh}</p>
@@ -204,6 +235,27 @@ export default function HomePage() {
                     </article>
                   ))}
               </div>
+              {showPagination && (
+                <div className="pagination">
+                  <button
+                    type="button"
+                    onClick={goToPreviousPage}
+                    disabled={safeCurrentPage <= 1}
+                  >
+                    上一页
+                  </button>
+                  <span>
+                    第 {safeCurrentPage} 页，共 {totalPages} 页
+                  </span>
+                  <button
+                    type="button"
+                    onClick={goToNextPage}
+                    disabled={totalPages === 0 || safeCurrentPage >= totalPages}
+                  >
+                    下一页
+                  </button>
+                </div>
+              )}
             </section>
           </div>
         </div>
