@@ -13,7 +13,7 @@ from ..models.terms import Term, TermMergeResult, TermsRepository
 
 router = APIRouter(prefix="/terms", tags=["terms"])
 
-_DATA_PATH = Path(__file__).resolve().parents[3] / "data" / "terms.json"
+_DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "terms.json"
 _repository = TermsRepository(_DATA_PATH)
 
 
