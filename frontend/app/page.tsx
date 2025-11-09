@@ -8,17 +8,27 @@ type Term = {
   en: string;
 };
 
+type Scope = "zh" | "bn" | "en" | "all";
+
 const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Term[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("all");
+  const [resultCount, setResultCount] = useState(0);
+
+  const placeholderByScope: Record<Scope, string> = {
+    zh: "按中文关键词搜索",
+    bn: "按孟加拉语关键词搜索",
+    en: "按英文关键词搜索",
+    all: "Search by Chinese, Bengali, or English keyword",
+  };
 
   const performSearch = useCallback(
     async (override?: string) => {
@@ -27,9 +37,15 @@ export default function HomePage() {
       setError(null);
       setSearchNotice(null);
       try {
-        const url = searchTerm
-          ? `${API_BASE}?q=${encodeURIComponent(searchTerm)}`
-          : API_BASE;
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.set("q", searchTerm);
+        }
+        if (scope !== "all") {
+          params.set("scope", scope);
+        }
+        const queryString = params.toString();
+        const url = queryString ? `${API_BASE}?${queryString}` : API_BASE;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Unable to search terms (status ${response.status})`);
@@ -49,12 +65,16 @@ export default function HomePage() {
         setLoading(false);
       }
     },
-    [query]
+    [query, scope]
   );
 
   useEffect(() => {
     void performSearch("");
   }, [performSearch]);
+
+  useEffect(() => {
+    setResultCount(results.length);
+  }, [results]);
 
   const onSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,7 +111,9 @@ export default function HomePage() {
 
       const summary: { added: number; total: number } = await response.json();
       setInfoMessage(
-        `Added ${summary.added} term${summary.added === 1 ? "" : "s"}. Repository now holds ${summary.total} entries.`
+        `Added ${summary.added} term${
+          summary.added === 1 ? "" : "s"
+        }. Repository now holds ${summary.total} entries.`
       );
       await performSearch();
     } catch (uploadError) {
@@ -107,36 +129,9 @@ export default function HomePage() {
     }
   };
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [results]);
-
-  const PAGE_SIZE = 20;
-  const hasResults = results.length > 0;
-  const totalPages = hasResults ? Math.ceil(results.length / PAGE_SIZE) : 0;
-  const safeCurrentPage = hasResults
-    ? Math.min(Math.max(1, currentPage), totalPages)
-    : 1;
-  const pageOffset = (safeCurrentPage - 1) * PAGE_SIZE;
-  const paginatedResults = hasResults
-    ? results.slice(pageOffset, pageOffset + PAGE_SIZE)
-    : [];
-
-  const goToPreviousPage = () => {
-    setCurrentPage((page) => Math.max(1, page - 1));
-  };
-
-  const goToNextPage = () => {
-    setCurrentPage((page) =>
-      totalPages === 0 ? 1 : Math.min(totalPages, page + 1)
-    );
-  };
-
-  const showPagination = hasResults;
-
   return (
     <>
-      <header className="navbar">
+      <header className="site-header">
         <div>
           <div style={{ fontSize: "1.2rem", fontWeight: 600 }}>
             中孟法律术语库
@@ -145,119 +140,130 @@ export default function HomePage() {
             Zh–Bn Legal Corpus
           </div>
         </div>
-        <nav className="nav-links">
+        <nav className="site-nav">
           <a href="#dictionary">Dictionary</a>
           <a href="#corpus">Corpus</a>
           <a href="#import">Data Import</a>
         </nav>
       </header>
+
       <main>
-        <div className="layout">
-          <div className="content-wrapper">
-            <aside className="sidebar">
-              <h2>Legal Translation Hub</h2>
-              <p>
-                Explore bilingual legal terminology curated for Chinese and
-                Bengali practitioners. All terms are stored locally so that the
-                glossary remains usable even when you&apos;re working offline.
-              </p>
+        <div className="hero">
+          <aside className="sidebar">
+            <h2>Legal Translation Hub</h2>
+            <p>
+              Explore bilingual legal terminology curated for Chinese and
+              Bengali practitioners. All terms are stored locally so that the
+              glossary remains usable even when you&apos;re working offline.
+            </p>
+            <p className="subtle-text">
+              Adjust the upload parsing or swap the JSON data store inside
+              <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
+                backend/app/api/terms.py
+              </code>
+              when you are ready to connect to a database.
+            </p>
+          </aside>
+
+          <section className="main-content" id="dictionary">
+            <h1 className="section-title">Search the terminology dictionary</h1>
+
+            <form className="search-form" onSubmit={onSearch}>
+              <input
+                aria-label="Search terms"
+                className="search-input"
+                placeholder={placeholderByScope[scope]}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "Searching…" : "Search"}
+              </button>
+            </form>
+
+            <div className="filter-bar">
+              <label className="filter-label" htmlFor="language-scope">
+                语言范围
+              </label>
+              <select
+                id="language-scope"
+                className="scope-select"
+                value={scope}
+                onChange={(event) => setScope(event.target.value as Scope)}
+                aria-label="选择语言范围"
+              >
+                <option value="zh">按中文</option>
+                <option value="bn">按孟加拉语</option>
+                <option value="en">按英文</option>
+                <option value="all">全部</option>
+              </select>
+              <span className="result-count">共 {resultCount} 条结果</span>
+            </div>
+
+            <div className="upload-panel" id="import">
+              <h2
+                style={{
+                  marginTop: 0,
+                  fontSize: "1.1rem",
+                  color: "#1f2a44",
+                }}
+              >
+                Import new terms
+              </h2>
               <p className="subtle-text">
-                Adjust the upload parsing or swap the JSON data store inside
-                <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
-                  backend/app/api/terms.py
-                </code>
-                when you are ready to connect to a database.
+                Upload a .xlsx file with zh / bn / en columns or a .docx file
+                formatted as 中文｜孟加拉语｜英文.
               </p>
-            </aside>
-            <section className="main-content" id="dictionary">
-              <h1 className="section-title">Search the terminology dictionary</h1>
-              <form className="search-form" onSubmit={onSearch}>
-                <input
-                  aria-label="Search terms"
-                  className="search-input"
-                  placeholder="Search by Chinese, Bengali, or English keyword"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-                <button className="primary-button" type="submit" disabled={loading}>
-                  {loading ? "Searching…" : "Search"}
-                </button>
-              </form>
+              <input
+                aria-label="Upload terms file"
+                type="file"
+                accept=".xlsx,.docx"
+                onChange={onUpload}
+                disabled={uploading}
+              />
+              {uploading && <div className="status-text">Uploading…</div>}
+            </div>
 
-              <div className="upload-panel" id="import">
-                <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
-                  Import new terms
-                </h2>
-                <p className="subtle-text">
-                  Upload a .xlsx file with zh / bn / en columns or a .docx file
-                  formatted as 中文｜孟加拉语｜英文.
-                </p>
-                <input
-                  aria-label="Upload terms file"
-                  type="file"
-                  accept=".xlsx,.docx"
-                  onChange={onUpload}
-                  disabled={uploading}
-                />
-                {uploading && <div className="status-text">Uploading…</div>}
-              </div>
+            {error && (
+              <div className="status-text error-text">{error}</div>
+            )}
+            {infoMessage && !error && (
+              <div className="status-text">{infoMessage}</div>
+            )}
 
-              {error && <div className="status-text error-text">{error}</div>}
-              {infoMessage && !error && (
-                <div className="status-text">{infoMessage}</div>
-              )}
-
-              <div className="results-list">
-                {loading && <div>Loading…</div>}
-                {!loading && results.length === 0 && !error && (
-                  <div className="empty-state">
-                    {searchNotice ?? "Start by searching for a legal concept."}
-                  </div>
-                )}
-                {!loading &&
-                  paginatedResults.map((term, index) => (
-                    <article
-                      className="result-card"
-                      key={`${term.zh}-${term.bn}-${pageOffset + index}`}
-                    >
-                      <div>
-                        <div className="term-label">中文</div>
-                        <p className="term-value">{term.zh}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">孟加拉语</div>
-                        <p className="term-value">{term.bn}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">英文</div>
-                        <p className="term-value">{term.en}</p>
-                      </div>
-                    </article>
-                  ))}
-              </div>
-              {showPagination && (
-                <div className="pagination">
-                  <button
-                    type="button"
-                    onClick={goToPreviousPage}
-                    disabled={safeCurrentPage <= 1}
-                  >
-                    上一页
-                  </button>
-                  <span>
-                    第 {safeCurrentPage} 页，共 {totalPages} 页
-                  </span>
-                  <button
-                    type="button"
-                    onClick={goToNextPage}
-                    disabled={totalPages === 0 || safeCurrentPage >= totalPages}
-                  >
-                    下一页
-                  </button>
+            <div className="results-table">
+              {loading && <div>Loading…</div>}
+              {!loading && results.length === 0 && !error && (
+                <div className="empty-state">
+                  {searchNotice ?? "Start by searching for a legal concept."}
                 </div>
               )}
-            </section>
-          </div>
+              {!loading &&
+                results.map((term, index) => (
+                  <article
+                    className="result-card"
+                    key={`${term.zh}-${term.bn}-${index}`}
+                  >
+                    <div>
+                      <div className="term-label">中文</div>
+                      <p className="term-value">{term.zh}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">孟加拉语</div>
+                      <p className="term-value">{term.bn}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">英文</div>
+                      <p className="term-value">{term.en}</p>
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </section>
         </div>
       </main>
     </>
