@@ -108,14 +108,10 @@ export default function HomePage() {
 
   return (
     <>
-      <header className="navbar">
-        <div>
-          <div style={{ fontSize: "1.2rem", fontWeight: 600 }}>
-            中孟法律术语库
-          </div>
-          <div style={{ fontSize: "0.85rem", opacity: 0.85 }}>
-            Zh–Bn Legal Corpus
-          </div>
+      <header className="site-header">
+        <div className="site-title">
+          <div className="title-primary">中孟法律术语库</div>
+          <div className="title-secondary">Zh–Bn Legal Corpus</div>
         </div>
         <nav className="nav-links">
           <a href="#dictionary">Dictionary</a>
@@ -123,89 +119,106 @@ export default function HomePage() {
           <a href="#import">Data Import</a>
         </nav>
       </header>
-      <main>
-        <div className="layout">
-          <div className="content-wrapper">
-            <aside className="sidebar">
-              <h2>Legal Translation Hub</h2>
-              <p>
-                Explore bilingual legal terminology curated for Chinese and
-                Bengali practitioners. All terms are stored locally so that the
-                glossary remains usable even when you&apos;re working offline.
-              </p>
-              <p className="subtle-text">
-                Adjust the upload parsing or swap the JSON data store inside
-                <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
-                  backend/app/api/terms.py
-                </code>
-                when you are ready to connect to a database.
-              </p>
-            </aside>
-            <section className="main-content" id="dictionary">
-              <h1 className="section-title">Search the terminology dictionary</h1>
-              <form className="search-form" onSubmit={onSearch}>
-                <input
-                  aria-label="Search terms"
-                  className="search-input"
-                  placeholder="Search by Chinese, Bengali, or English keyword"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-                <button className="primary-button" type="submit" disabled={loading}>
-                  {loading ? "Searching…" : "Search"}
-                </button>
-              </form>
 
-              <div className="upload-panel" id="import">
-                <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
-                  Import new terms
-                </h2>
-                <p className="subtle-text">
-                  Upload a .xlsx file with zh / bn / en columns or a .docx file
-                  formatted as 中文｜孟加拉语｜英文.
-                </p>
-                <input
-                  aria-label="Upload terms file"
-                  type="file"
-                  accept=".xlsx,.docx"
-                  onChange={onUpload}
-                  disabled={uploading}
-                />
-                {uploading && <div className="status-text">Uploading…</div>}
-              </div>
+      <section className="hero">
+        <div className="hero-copy">
+          <h1>Legal Translation Hub</h1>
+          <p>
+            Explore bilingual legal terminology curated for Chinese and Bengali
+            practitioners. All terms are stored locally so that the glossary
+            remains usable even when you&apos;re working offline.
+          </p>
+        </div>
+        <form className="hero-search" onSubmit={onSearch}>
+          <input
+            aria-label="Search terms"
+            className="hero-search-input"
+            placeholder="Search by Chinese, Bengali, or English keyword"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button className="primary-button" type="submit" disabled={loading}>
+            {loading ? "Searching…" : "Search"}
+          </button>
+        </form>
+      </section>
 
-              {error && <div className="status-text error-text">{error}</div>}
-              {infoMessage && !error && (
-                <div className="status-text">{infoMessage}</div>
-              )}
-
-              <div className="results-list">
-                {loading && <div>Loading…</div>}
-                {!loading && results.length === 0 && !error && (
-                  <div className="empty-state">
-                    {searchNotice ?? "Start by searching for a legal concept."}
-                  </div>
-                )}
-                {!loading &&
-                  results.map((term, index) => (
-                    <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
-                      <div>
-                        <div className="term-label">中文</div>
-                        <p className="term-value">{term.zh}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">孟加拉语</div>
-                        <p className="term-value">{term.bn}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">英文</div>
-                        <p className="term-value">{term.en}</p>
-                      </div>
-                    </article>
-                  ))}
-              </div>
-            </section>
+      <section className="filter-bar">
+        <form className="filter-form" onSubmit={onSearch}>
+          <input
+            aria-label="Search terms"
+            className="filter-search-input"
+            placeholder="Refine terms by keyword"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button className="filter-submit" type="submit" disabled={loading}>
+            {loading ? "Searching…" : "Search"}
+          </button>
+          <div className="language-selector-hook" aria-hidden>
+            Language selector
           </div>
+        </form>
+      </section>
+
+      <main className="content-shell">
+        <div className="content-grid">
+          <section className="results-panel" id="dictionary">
+            <h2 className="section-title">Terminology results</h2>
+            {error && <div className="status-text error-text">{error}</div>}
+            {infoMessage && !error && (
+              <div className="status-text">{infoMessage}</div>
+            )}
+            <div className="results-list">
+              {loading && <div>Loading…</div>}
+              {!loading && results.length === 0 && !error && (
+                <div className="empty-state">
+                  {searchNotice ?? "Start by searching for a legal concept."}
+                </div>
+              )}
+              {!loading &&
+                results.map((term, index) => (
+                  <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
+                    <div>
+                      <div className="term-label">中文</div>
+                      <p className="term-value">{term.zh}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">孟加拉语</div>
+                      <p className="term-value">{term.bn}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">英文</div>
+                      <p className="term-value">{term.en}</p>
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </section>
+          <aside className="auxiliary-panel" id="import">
+            <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
+              Import new terms
+            </h2>
+            <p className="subtle-text">
+              Upload a .xlsx file with zh / bn / en columns or a .docx file
+              formatted as 中文｜孟加拉语｜英文.
+            </p>
+            <p className="subtle-text">
+              Adjust the upload parsing or connect to a database inside
+              <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
+                backend/app/api/terms.py
+              </code>
+              when you&apos;re ready to extend the data source.
+            </p>
+            <input
+              aria-label="Upload terms file"
+              type="file"
+              accept=".xlsx,.docx"
+              onChange={onUpload}
+              disabled={uploading}
+            />
+            {uploading && <div className="status-text">Uploading…</div>}
+          </aside>
         </div>
       </main>
     </>
