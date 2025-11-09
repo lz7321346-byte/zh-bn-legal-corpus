@@ -15,7 +15,18 @@ export default function RootLayout({
   return (
     <html lang="zh-Hans">
       <body>
-        {children}
+        <header className="site-header">
+          <div>
+            <div className="site-title">中孟法律术语库</div>
+            <div className="site-subtitle">Zh–Bn Legal Corpus</div>
+          </div>
+          <nav className="site-nav">
+            <a href="#dictionary">术语检索 Search</a>
+            <a href="#import">资料导入 Upload</a>
+            <a href="#about">项目简介 About</a>
+          </nav>
+        </header>
+        <main className="main-container">{children}</main>
       </body>
     </html>
   );
