@@ -8,6 +8,8 @@ type Term = {
   en: string;
 };
 
+type Scope = "zh" | "bn" | "en" | "all";
+
 const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
 
 export default function HomePage() {
@@ -18,6 +20,15 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("all");
+  const [resultCount, setResultCount] = useState(0);
+
+  const placeholderByScope: Record<Scope, string> = {
+    zh: "按中文关键词搜索",
+    bn: "按孟加拉语关键词搜索",
+    en: "按英文关键词搜索",
+    all: "Search by Chinese, Bengali, or English keyword",
+  };
 
   const performSearch = useCallback(
     async (override?: string) => {
@@ -26,9 +37,15 @@ export default function HomePage() {
       setError(null);
       setSearchNotice(null);
       try {
-        const url = searchTerm
-          ? `${API_BASE}?q=${encodeURIComponent(searchTerm)}`
-          : API_BASE;
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.set("q", searchTerm);
+        }
+        if (scope !== "all") {
+          params.set("scope", scope);
+        }
+        const queryString = params.toString();
+        const url = queryString ? `${API_BASE}?${queryString}` : API_BASE;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Unable to search terms (status ${response.status})`);
@@ -36,24 +53,28 @@ export default function HomePage() {
         const data: Term[] = await response.json();
         setResults(data);
         if (!data.length) {
-          setSearchNotice("暂未找到相关术语。No matching terms yet.");
+          setSearchNotice("No terms matched your search yet.");
         }
       } catch (fetchError) {
         setError(
           fetchError instanceof Error
             ? fetchError.message
-            : "术语服务暂时不可用。The terminology service is unreachable."
+            : "The terminology service is currently unreachable."
         );
       } finally {
         setLoading(false);
       }
     },
-    [query]
+    [query, scope]
   );
 
   useEffect(() => {
     void performSearch("");
   }, [performSearch]);
+
+  useEffect(() => {
+    setResultCount(results.length);
+  }, [results]);
 
   const onSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,108 +111,161 @@ export default function HomePage() {
 
       const summary: { added: number; total: number } = await response.json();
       setInfoMessage(
-        `已新增 ${summary.added} 条术语（共 ${summary.total} 条）。`
+        `Added ${summary.added} term${
+          summary.added === 1 ? "" : "s"
+        }. Repository now holds ${summary.total} entries.`
       );
       await performSearch();
     } catch (uploadError) {
       setError(
         uploadError instanceof Error
           ? uploadError.message
-          : "文件导入失败。Could not import the provided file."
+          : "Could not import the provided file."
       );
     } finally {
       setUploading(false);
+      // Reset the input so the same file can be uploaded twice if needed.
       event.target.value = "";
     }
   };
 
   return (
-    <div className="page-sections">
-      <section className="card intro-card" id="about">
-        <h1>中孟法律术语库 · Zh–Bn Legal Corpus</h1>
-        <p>
-          专为中孟法律从业者打造的离线术语参考库，覆盖诉讼、合同、合规等常见场景，帮助您在双语沟通中保持精准表达。
-        </p>
-        <p className="secondary-text">
-          A focused, offline-first reference of Chinese and Bengali legal terms to support accurate bilingual practice across litigation, contracts, and compliance.
-        </p>
-      </section>
-
-      <section className="card search-card" id="dictionary">
-        <h2>术语检索 Search</h2>
-        <p className="card-description">
-          输入关键词，即时检索中文、孟加拉语与英文对照。支持模糊匹配，帮助您快速定位专业术语。
-        </p>
-        <form className="search-form" onSubmit={onSearch}>
-          <input
-            aria-label="搜索术语"
-            className="search-input"
-            placeholder="请输入中文、孟加拉语或英文关键词"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <button className="primary-button" type="submit" disabled={loading}>
-            {loading ? "检索中…" : "搜索"}
-          </button>
-        </form>
-
-        {error && <div className="status-text error-text">{error}</div>}
-        {infoMessage && !error && (
-          <div className="status-text info-text">{infoMessage}</div>
-        )}
-        {searchNotice && !loading && results.length === 0 && (
-          <div className="status-text subtle-text">{searchNotice}</div>
-        )}
-
-        {loading && <div className="status-text subtle-text">检索中…</div>}
-
-        {!loading && results.length > 0 && (
-          <div className="results-wrapper">
-            <table className="term-table" aria-label="术语列表">
-              <thead>
-                <tr>
-                  <th scope="col">中文</th>
-                  <th scope="col">孟加拉语</th>
-                  <th scope="col">英文</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.map((term, index) => (
-                  <tr key={`${term.zh}-${term.bn}-${index}`}>
-                    <td>{term.zh}</td>
-                    <td>{term.bn}</td>
-                    <td>{term.en}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+    <>
+      <header className="site-header">
+        <div>
+          <div style={{ fontSize: "1.2rem", fontWeight: 600 }}>
+            中孟法律术语库
           </div>
-        )}
+          <div style={{ fontSize: "0.85rem", opacity: 0.85 }}>
+            Zh–Bn Legal Corpus
+          </div>
+        </div>
+        <nav className="site-nav">
+          <a href="#dictionary">Dictionary</a>
+          <a href="#corpus">Corpus</a>
+          <a href="#import">Data Import</a>
+        </nav>
+      </header>
 
-        {!loading && results.length === 0 && !error && !searchNotice && (
-          <div className="empty-state">请输入关键词开始检索。</div>
-        )}
-      </section>
+      <main>
+        <div className="hero">
+          <aside className="sidebar">
+            <h2>Legal Translation Hub</h2>
+            <p>
+              Explore bilingual legal terminology curated for Chinese and
+              Bengali practitioners. All terms are stored locally so that the
+              glossary remains usable even when you&apos;re working offline.
+            </p>
+            <p className="subtle-text">
+              Adjust the upload parsing or swap the JSON data store inside
+              <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
+                backend/app/api/terms.py
+              </code>
+              when you are ready to connect to a database.
+            </p>
+          </aside>
 
-      <section className="card upload-card" id="import">
-        <h2>资料导入 Upload</h2>
-        <p className="card-description">
-          请上传包含「中文 / 孟加拉语 / 英文」三列的 .xlsx 表格，或按照「中文｜孟加拉语｜英文」段落格式编排的 .docx 文档。
-        </p>
-        <p className="secondary-text">
-          上传后系统将自动校验并更新本地术语库，便于团队共享离线资料。
-        </p>
-        <label className="upload-label">
-          <span>{uploading ? "正在上传…" : "选择文件"}</span>
-          <input
-            aria-label="上传术语文件"
-            type="file"
-            accept=".xlsx,.docx"
-            onChange={onUpload}
-            disabled={uploading}
-          />
-        </label>
-      </section>
-    </div>
+          <section className="main-content" id="dictionary">
+            <h1 className="section-title">Search the terminology dictionary</h1>
+
+            <form className="search-form" onSubmit={onSearch}>
+              <input
+                aria-label="Search terms"
+                className="search-input"
+                placeholder={placeholderByScope[scope]}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "Searching…" : "Search"}
+              </button>
+            </form>
+
+            <div className="filter-bar">
+              <label className="filter-label" htmlFor="language-scope">
+                语言范围
+              </label>
+              <select
+                id="language-scope"
+                className="scope-select"
+                value={scope}
+                onChange={(event) => setScope(event.target.value as Scope)}
+                aria-label="选择语言范围"
+              >
+                <option value="zh">按中文</option>
+                <option value="bn">按孟加拉语</option>
+                <option value="en">按英文</option>
+                <option value="all">全部</option>
+              </select>
+              <span className="result-count">共 {resultCount} 条结果</span>
+            </div>
+
+            <div className="upload-panel" id="import">
+              <h2
+                style={{
+                  marginTop: 0,
+                  fontSize: "1.1rem",
+                  color: "#1f2a44",
+                }}
+              >
+                Import new terms
+              </h2>
+              <p className="subtle-text">
+                Upload a .xlsx file with zh / bn / en columns or a .docx file
+                formatted as 中文｜孟加拉语｜英文.
+              </p>
+              <input
+                aria-label="Upload terms file"
+                type="file"
+                accept=".xlsx,.docx"
+                onChange={onUpload}
+                disabled={uploading}
+              />
+              {uploading && <div className="status-text">Uploading…</div>}
+            </div>
+
+            {error && (
+              <div className="status-text error-text">{error}</div>
+            )}
+            {infoMessage && !error && (
+              <div className="status-text">{infoMessage}</div>
+            )}
+
+            <div className="results-table">
+              {loading && <div>Loading…</div>}
+              {!loading && results.length === 0 && !error && (
+                <div className="empty-state">
+                  {searchNotice ?? "Start by searching for a legal concept."}
+                </div>
+              )}
+              {!loading &&
+                results.map((term, index) => (
+                  <article
+                    className="result-card"
+                    key={`${term.zh}-${term.bn}-${index}`}
+                  >
+                    <div>
+                      <div className="term-label">中文</div>
+                      <p className="term-value">{term.zh}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">孟加拉语</div>
+                      <p className="term-value">{term.bn}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">英文</div>
+                      <p className="term-value">{term.en}</p>
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </section>
+        </div>
+      </main>
+    </>
   );
 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -79,8 +79,8 @@ class TermsRepository:
         self.save_terms(existing_terms)
         return TermMergeResult(added=added, total=len(existing_terms))
 
-    def search(self, query: str | None) -> list[Term]:
-        """Perform a case-insensitive substring search over all term fields."""
+    def search(self, query: str | None, scope: Literal["zh", "bn", "en"] | None = None) -> list[Term]:
+        """Perform a case-insensitive substring search over the requested term fields."""
 
         all_terms = self.load_terms()
         if not query:
@@ -88,12 +88,16 @@ class TermsRepository:
 
         normalized = query.casefold()
 
+        if scope is not None and scope not in {"zh", "bn", "en"}:
+            raise ValueError("Invalid search scope provided")
+
+        def fields_for(term: Term) -> list[str]:
+            if scope is None:
+                return [term.zh, term.bn, term.en]
+            return [getattr(term, scope)]
+
         def matches(term: Term) -> bool:
-            return (
-                normalized in term.zh.casefold()
-                or normalized in term.bn.casefold()
-                or normalized in term.en.casefold()
-            )
+            return any(normalized in field.casefold() for field in fields_for(term))
 
         return [term for term in all_terms if matches(term)]
 

@@ -77,6 +77,17 @@ You can run the FastAPI service either directly with Python or inside Docker.
 
 Both approaches expose the same API surface, so you can explore the “finished” backend prototype through the Swagger UI at `http://localhost:8000/docs`.
 
+## 快速开始
+
+1. **启动后端服务**
+   - 使用本地 Python 环境：`python -m venv .venv && source .venv/bin/activate && pip install -e .[dev] && uvicorn backend.app.main:app --reload`
+   - 或者使用 Docker Compose：`docker compose up --build backend`
+2. **启动前端界面**
+   - 在另一个终端中运行：`cd frontend && npm install && npm run dev`
+3. **开始使用**
+   - 打开浏览器访问前端应用，先确保后端接口可用。
+   - 然后可以搜索已有术语，或上传 Excel/Word（`.xlsx` / `.docx`）术语文件，系统会自动合并数据。
+
 ## Next steps
 
 - Bootstrap the Next.js frontend in the `frontend/` directory.
