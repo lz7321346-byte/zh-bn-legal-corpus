@@ -8,6 +8,8 @@ type Term = {
   en: string;
 };
 
+type Scope = "zh" | "bn" | "en" | "all";
+
 const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
 
 export default function HomePage() {
@@ -18,6 +20,15 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("all");
+  const [resultCount, setResultCount] = useState(0);
+
+  const placeholderByScope: Record<Scope, string> = {
+    zh: "按中文关键词搜索",
+    bn: "按孟加拉语关键词搜索",
+    en: "按英文关键词搜索",
+    all: "Search by Chinese, Bengali, or English keyword",
+  };
 
   const performSearch = useCallback(
     async (override?: string) => {
@@ -26,9 +37,15 @@ export default function HomePage() {
       setError(null);
       setSearchNotice(null);
       try {
-        const url = searchTerm
-          ? `${API_BASE}?q=${encodeURIComponent(searchTerm)}`
-          : API_BASE;
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.set("q", searchTerm);
+        }
+        if (scope !== "all") {
+          params.set("scope", scope);
+        }
+        const queryString = params.toString();
+        const url = queryString ? `${API_BASE}?${queryString}` : API_BASE;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Unable to search terms (status ${response.status})`);
@@ -48,12 +65,16 @@ export default function HomePage() {
         setLoading(false);
       }
     },
-    [query]
+    [query, scope]
   );
 
   useEffect(() => {
     void performSearch("");
   }, [performSearch]);
+
+  useEffect(() => {
+    setResultCount(results.length);
+  }, [results]);
 
   const onSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,7 +168,7 @@ export default function HomePage() {
                 <input
                   aria-label="Search terms"
                   className="search-input"
-                  placeholder="Search by Chinese, Bengali, or English keyword"
+                  placeholder={placeholderByScope[scope]}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
@@ -155,6 +176,25 @@ export default function HomePage() {
                   {loading ? "Searching…" : "Search"}
                 </button>
               </form>
+
+              <div className="filter-bar">
+                <label className="filter-label" htmlFor="language-scope">
+                  语言范围
+                </label>
+                <select
+                  id="language-scope"
+                  className="scope-select"
+                  value={scope}
+                  onChange={(event) => setScope(event.target.value as Scope)}
+                  aria-label="选择语言范围"
+                >
+                  <option value="zh">按中文</option>
+                  <option value="bn">按孟加拉语</option>
+                  <option value="en">按英文</option>
+                  <option value="all">全部</option>
+                </select>
+                <span className="result-count">共 {resultCount} 条结果</span>
+              </div>
 
               <div className="upload-panel" id="import">
                 <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
