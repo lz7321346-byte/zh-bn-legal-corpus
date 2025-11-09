@@ -6,6 +6,7 @@ type Term = {
   zh: string;
   bn: string;
   en: string;
+  note?: string | null;
 };
 
 const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
@@ -179,30 +180,42 @@ export default function HomePage() {
                 <div className="status-text">{infoMessage}</div>
               )}
 
-              <div className="results-list">
-                {loading && <div>Loading…</div>}
-                {!loading && results.length === 0 && !error && (
-                  <div className="empty-state">
-                    {searchNotice ?? "Start by searching for a legal concept."}
-                  </div>
-                )}
-                {!loading &&
-                  results.map((term, index) => (
-                    <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
-                      <div>
-                        <div className="term-label">中文</div>
-                        <p className="term-value">{term.zh}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">孟加拉语</div>
-                        <p className="term-value">{term.bn}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">英文</div>
-                        <p className="term-value">{term.en}</p>
-                      </div>
-                    </article>
-                  ))}
+              <div className="results-table-wrapper">
+                <table className="results-table" aria-live="polite">
+                  <thead>
+                    <tr>
+                      <th scope="col">中文</th>
+                      <th scope="col">孟加拉语</th>
+                      <th scope="col">英文</th>
+                      <th scope="col">备注（可选）</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading && (
+                      <tr>
+                        <td colSpan={4} className="empty-state">
+                          Loading…
+                        </td>
+                      </tr>
+                    )}
+                    {!loading && results.length === 0 && !error && (
+                      <tr>
+                        <td colSpan={4} className="empty-state">
+                          {searchNotice ?? "Start by searching for a legal concept."}
+                        </td>
+                      </tr>
+                    )}
+                    {!loading &&
+                      results.map((term, index) => (
+                        <tr key={`${term.zh}-${term.bn}-${index}`}>
+                          <td>{term.zh}</td>
+                          <td>{term.bn}</td>
+                          <td>{term.en}</td>
+                          <td>{term.note ?? ""}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </section>
           </div>
