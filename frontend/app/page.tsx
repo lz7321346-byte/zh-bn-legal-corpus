@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 
 type Term = {
   zh: string;
@@ -8,142 +8,78 @@ type Term = {
   en: string;
 };
 
-type Scope = "zh" | "bn" | "en" | "all";
+type Scope = "all" | "zh" | "bn" | "en";
 
-const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
+const placeholders: Record<Scope, string> = {
+  all: "按中文、孟加拉语或英文关键词搜索",
+  zh: "按中文关键词搜索",
+  bn: "按孟加拉语关键词搜索",
+  en: "按英文关键词搜索",
+};
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<Scope>("all");
   const [results, setResults] = useState<Term[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [searchNotice, setSearchNotice] = useState<string | null>(null);
-  const [scope, setScope] = useState<Scope>("all");
-  const [resultCount, setResultCount] = useState(0);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  const placeholderByScope: Record<Scope, string> = {
-    zh: "按中文关键词搜索",
-    bn: "按孟加拉语关键词搜索",
-    en: "按英文关键词搜索",
-    all: "Search by Chinese, Bengali, or English keyword",
-  };
-
-  const performSearch = useCallback(
-    async (override?: string) => {
-      const searchTerm = override ?? query;
-      setLoading(true);
-      setError(null);
-      setSearchNotice(null);
-      try {
-        const params = new URLSearchParams();
-        if (searchTerm) {
-          params.set("q", searchTerm);
-        }
-        if (scope !== "all") {
-          params.set("scope", scope);
-        }
-        const queryString = params.toString();
-        const url = queryString ? `${API_BASE}?${queryString}` : API_BASE;
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Unable to search terms (status ${response.status})`);
-        }
-        const data: Term[] = await response.json();
-        setResults(data);
-        if (!data.length) {
-          setSearchNotice("No terms matched your search yet.");
-        }
-      } catch (fetchError) {
-        setError(
-          fetchError instanceof Error
-            ? fetchError.message
-            : "The terminology service is currently unreachable."
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [query, scope]
-  );
-
-  useEffect(() => {
-    void performSearch("");
-  }, [performSearch]);
-
-  useEffect(() => {
-    setResultCount(results.length);
-  }, [results]);
-
-  const onSearch = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setInfoMessage(null);
-    await performSearch();
-  };
-
-  const onUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    setUploading(true);
     setError(null);
-    setSearchNotice(null);
+    setLoading(true);
+    setHasSearched(true);
+
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch(`${API_BASE}/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      const params = new URLSearchParams();
+      const trimmedQuery = query.trim();
+
+      if (trimmedQuery) {
+        params.set("q", trimmedQuery);
+      }
+
+      if (scope !== "all") {
+        params.set("scope", scope);
+      }
+
+      const queryString = params.toString();
+      const response = await fetch(
+        queryString ? `/api/v1/terms?${queryString}` : "/api/v1/terms"
+      );
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
-        const detail = payload?.detail;
-        throw new Error(
-          typeof detail === "string"
-            ? detail
-            : `Upload failed with status ${response.status}`
-        );
+        throw new Error("Unable to load terms");
       }
 
-      const summary: { added: number; total: number } = await response.json();
-      setInfoMessage(
-        `Added ${summary.added} term${
-          summary.added === 1 ? "" : "s"
-        }. Repository now holds ${summary.total} entries.`
-      );
-      await performSearch();
-    } catch (uploadError) {
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "Could not import the provided file."
-      );
+      const data: Term[] = await response.json();
+      setResults(data);
+    } catch (fetchError) {
+      console.error(fetchError);
+      setResults([]);
+      setError("术语查询服务暂时不可用，请稍后再试。");
     } finally {
-      setUploading(false);
-      // Reset the input so the same file can be uploaded twice if needed.
-      event.target.value = "";
+      setLoading(false);
     }
   };
+
+  const resultCount = results.length;
 
   return (
     <>
       <header className="site-header">
         <div>
           <div style={{ fontSize: "1.2rem", fontWeight: 600 }}>
-            中孟法律术语库
+            中国法律翻译术语库
           </div>
           <div style={{ fontSize: "0.85rem", opacity: 0.85 }}>
-            Zh–Bn Legal Corpus
+            中孟双语 · 在线词典
           </div>
         </div>
         <nav className="site-nav">
           <a href="#dictionary">Dictionary</a>
           <a href="#corpus">Corpus</a>
-          <a href="#import">Data Import</a>
+          <a href="#about">About</a>
         </nav>
       </header>
 
@@ -153,35 +89,31 @@ export default function HomePage() {
             <h2>Legal Translation Hub</h2>
             <p>
               Explore bilingual legal terminology curated for Chinese and
-              Bengali practitioners. All terms are stored locally so that the
-              glossary remains usable even when you&apos;re working offline.
+              Bengali practitioners. All terms are served directly from the
+              中孟法律翻译后台接口 so you can search the glossary instantly.
             </p>
             <p className="subtle-text">
-              Adjust the upload parsing or swap the JSON data store inside
+              When you are ready to expand, connect the API in
               <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
                 backend/app/api/terms.py
               </code>
-              when you are ready to connect to a database.
+              to your preferred database or terminology store.
             </p>
           </aside>
 
           <section className="main-content" id="dictionary">
-            <h1 className="section-title">Search the terminology dictionary</h1>
+            <h1 className="section-title">搜索中孟法律翻译术语</h1>
 
-            <form className="search-form" onSubmit={onSearch}>
+            <form className="search-form" onSubmit={handleSearch}>
               <input
-                aria-label="Search terms"
+                aria-label="搜索术语"
                 className="search-input"
-                placeholder={placeholderByScope[scope]}
+                placeholder={placeholders[scope]}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <button
-                className="primary-button"
-                type="submit"
-                disabled={loading}
-              >
-                {loading ? "Searching…" : "Search"}
+              <button className="primary-button" type="submit" disabled={loading}>
+                {loading ? "搜索中…" : "搜索"}
               </button>
             </form>
 
@@ -204,64 +136,56 @@ export default function HomePage() {
               <span className="result-count">共 {resultCount} 条结果</span>
             </div>
 
-            <div className="upload-panel" id="import">
-              <h2
-                style={{
-                  marginTop: 0,
-                  fontSize: "1.1rem",
-                  color: "#1f2a44",
-                }}
-              >
-                Import new terms
-              </h2>
-              <p className="subtle-text">
-                Upload a .xlsx file with zh / bn / en columns or a .docx file
-                formatted as 中文｜孟加拉语｜英文.
-              </p>
-              <input
-                aria-label="Upload terms file"
-                type="file"
-                accept=".xlsx,.docx"
-                onChange={onUpload}
-                disabled={uploading}
-              />
-              {uploading && <div className="status-text">Uploading…</div>}
-            </div>
+            {loading && <div className="status-text">搜索中…</div>}
 
-            {error && (
-              <div className="status-text error-text">{error}</div>
-            )}
-            {infoMessage && !error && (
-              <div className="status-text">{infoMessage}</div>
+            {error && <div className="status-text error-text">{error}</div>}
+
+            {!loading && !error && hasSearched && resultCount === 0 && (
+              <div className="empty-state">暂无匹配的术语</div>
             )}
 
-            <div className="results-table">
-              {loading && <div>Loading…</div>}
-              {!loading && results.length === 0 && !error && (
-                <div className="empty-state">
-                  {searchNotice ?? "Start by searching for a legal concept."}
-                </div>
-              )}
-              {!loading &&
-                results.map((term, index) => (
+            {!loading && !error && resultCount > 0 && (
+              <div className="results-table">
+                {results.map((term, index) => (
                   <article
                     className="result-card"
-                    key={`${term.zh}-${term.bn}-${index}`}
+                    key={`${term.zh}-${term.bn}-${term.en}-${index}`}
                   >
                     <div>
                       <div className="term-label">中文</div>
-                      <p className="term-value">{term.zh}</p>
+                      <p className="term-value">{term.zh || "—"}</p>
                     </div>
                     <div>
                       <div className="term-label">孟加拉语</div>
-                      <p className="term-value">{term.bn}</p>
+                      <p className="term-value">{term.bn || "—"}</p>
                     </div>
                     <div>
                       <div className="term-label">英文</div>
-                      <p className="term-value">{term.en}</p>
+                      <p className="term-value">{term.en || "—"}</p>
                     </div>
                   </article>
                 ))}
+              </div>
+            )}
+
+            <div className="import-panel" id="corpus">
+              <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
+                Corpus integration
+              </h2>
+              <p className="subtle-text">
+                Pair the terminology dictionary with bilingual legislation and
+                case-law corpora to provide richer context for each term.
+              </p>
+            </div>
+
+            <div className="upload-panel" id="about">
+              <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
+                About the project
+              </h2>
+              <p className="subtle-text">
+                该原型展示了如何用 Next.js + FastAPI 构建中国与孟加拉国法律翻译
+                工具。继续扩展即可支持更丰富的术语分类、例句与语料联动。
+              </p>
             </div>
           </section>
         </div>
