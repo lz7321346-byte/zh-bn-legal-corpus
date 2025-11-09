@@ -8,6 +8,8 @@ type Term = {
   en: string;
 };
 
+type Scope = "zh" | "bn" | "en" | "all";
+
 const API_BASE = "http://127.0.0.1:8000/api/v1/terms";
 
 export default function HomePage() {
@@ -18,6 +20,15 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [scope, setScope] = useState<Scope>("all");
+  const [resultCount, setResultCount] = useState(0);
+
+  const placeholderByScope: Record<Scope, string> = {
+    zh: "按中文关键词搜索",
+    bn: "按孟加拉语关键词搜索",
+    en: "按英文关键词搜索",
+    all: "Search by Chinese, Bengali, or English keyword",
+  };
 
   const performSearch = useCallback(
     async (override?: string) => {
@@ -26,9 +37,15 @@ export default function HomePage() {
       setError(null);
       setSearchNotice(null);
       try {
-        const url = searchTerm
-          ? `${API_BASE}?q=${encodeURIComponent(searchTerm)}`
-          : API_BASE;
+        const params = new URLSearchParams();
+        if (searchTerm) {
+          params.set("q", searchTerm);
+        }
+        if (scope !== "all") {
+          params.set("scope", scope);
+        }
+        const queryString = params.toString();
+        const url = queryString ? `${API_BASE}?${queryString}` : API_BASE;
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Unable to search terms (status ${response.status})`);
@@ -48,12 +65,16 @@ export default function HomePage() {
         setLoading(false);
       }
     },
-    [query]
+    [query, scope]
   );
 
   useEffect(() => {
     void performSearch("");
   }, [performSearch]);
+
+  useEffect(() => {
+    setResultCount(results.length);
+  }, [results]);
 
   const onSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -90,7 +111,9 @@ export default function HomePage() {
 
       const summary: { added: number; total: number } = await response.json();
       setInfoMessage(
-        `Added ${summary.added} term${summary.added === 1 ? "" : "s"}. Repository now holds ${summary.total} entries.`
+        `Added ${summary.added} term${
+          summary.added === 1 ? "" : "s"
+        }. Repository now holds ${summary.total} entries.`
       );
       await performSearch();
     } catch (uploadError) {
@@ -123,6 +146,7 @@ export default function HomePage() {
           <a href="#import">Data Import</a>
         </nav>
       </header>
+
       <main>
         <div className="hero">
           <aside className="sidebar">
@@ -140,23 +164,54 @@ export default function HomePage() {
               when you are ready to connect to a database.
             </p>
           </aside>
+
           <section className="main-content" id="dictionary">
             <h1 className="section-title">Search the terminology dictionary</h1>
-            <form className="filter-bar" onSubmit={onSearch}>
+
+            <form className="search-form" onSubmit={onSearch}>
               <input
                 aria-label="Search terms"
                 className="search-input"
-                placeholder="Search by Chinese, Bengali, or English keyword"
+                placeholder={placeholderByScope[scope]}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <button className="primary-button" type="submit" disabled={loading}>
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={loading}
+              >
                 {loading ? "Searching…" : "Search"}
               </button>
             </form>
 
-            <div className="import-panel" id="import">
-              <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
+            <div className="filter-bar">
+              <label className="filter-label" htmlFor="language-scope">
+                语言范围
+              </label>
+              <select
+                id="language-scope"
+                className="scope-select"
+                value={scope}
+                onChange={(event) => setScope(event.target.value as Scope)}
+                aria-label="选择语言范围"
+              >
+                <option value="zh">按中文</option>
+                <option value="bn">按孟加拉语</option>
+                <option value="en">按英文</option>
+                <option value="all">全部</option>
+              </select>
+              <span className="result-count">共 {resultCount} 条结果</span>
+            </div>
+
+            <div className="upload-panel" id="import">
+              <h2
+                style={{
+                  marginTop: 0,
+                  fontSize: "1.1rem",
+                  color: "#1f2a44",
+                }}
+              >
                 Import new terms
               </h2>
               <p className="subtle-text">
@@ -173,8 +228,12 @@ export default function HomePage() {
               {uploading && <div className="status-text">Uploading…</div>}
             </div>
 
-            {error && <div className="status-text error-text">{error}</div>}
-            {infoMessage && !error && <div className="status-text">{infoMessage}</div>}
+            {error && (
+              <div className="status-text error-text">{error}</div>
+            )}
+            {infoMessage && !error && (
+              <div className="status-text">{infoMessage}</div>
+            )}
 
             <div className="results-table">
               {loading && <div>Loading…</div>}
@@ -185,7 +244,10 @@ export default function HomePage() {
               )}
               {!loading &&
                 results.map((term, index) => (
-                  <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
+                  <article
+                    className="result-card"
+                    key={`${term.zh}-${term.bn}-${index}`}
+                  >
                     <div>
                       <div className="term-label">中文</div>
                       <p className="term-value">{term.zh}</p>
