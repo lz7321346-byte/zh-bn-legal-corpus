@@ -108,7 +108,7 @@ export default function HomePage() {
 
   return (
     <>
-      <header className="navbar">
+      <header className="site-header">
         <div>
           <div style={{ fontSize: "1.2rem", fontWeight: 600 }}>
             中孟法律术语库
@@ -117,95 +117,91 @@ export default function HomePage() {
             Zh–Bn Legal Corpus
           </div>
         </div>
-        <nav className="nav-links">
+        <nav className="site-nav">
           <a href="#dictionary">Dictionary</a>
           <a href="#corpus">Corpus</a>
           <a href="#import">Data Import</a>
         </nav>
       </header>
       <main>
-        <div className="layout">
-          <div className="content-wrapper">
-            <aside className="sidebar">
-              <h2>Legal Translation Hub</h2>
-              <p>
-                Explore bilingual legal terminology curated for Chinese and
-                Bengali practitioners. All terms are stored locally so that the
-                glossary remains usable even when you&apos;re working offline.
-              </p>
+        <div className="hero">
+          <aside className="sidebar">
+            <h2>Legal Translation Hub</h2>
+            <p>
+              Explore bilingual legal terminology curated for Chinese and
+              Bengali practitioners. All terms are stored locally so that the
+              glossary remains usable even when you&apos;re working offline.
+            </p>
+            <p className="subtle-text">
+              Adjust the upload parsing or swap the JSON data store inside
+              <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
+                backend/app/api/terms.py
+              </code>
+              when you are ready to connect to a database.
+            </p>
+          </aside>
+          <section className="main-content" id="dictionary">
+            <h1 className="section-title">Search the terminology dictionary</h1>
+            <form className="filter-bar" onSubmit={onSearch}>
+              <input
+                aria-label="Search terms"
+                className="search-input"
+                placeholder="Search by Chinese, Bengali, or English keyword"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <button className="primary-button" type="submit" disabled={loading}>
+                {loading ? "Searching…" : "Search"}
+              </button>
+            </form>
+
+            <div className="import-panel" id="import">
+              <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
+                Import new terms
+              </h2>
               <p className="subtle-text">
-                Adjust the upload parsing or swap the JSON data store inside
-                <code style={{ margin: "0 0.25rem", padding: "0 0.3rem" }}>
-                  backend/app/api/terms.py
-                </code>
-                when you are ready to connect to a database.
+                Upload a .xlsx file with zh / bn / en columns or a .docx file
+                formatted as 中文｜孟加拉语｜英文.
               </p>
-            </aside>
-            <section className="main-content" id="dictionary">
-              <h1 className="section-title">Search the terminology dictionary</h1>
-              <form className="search-form" onSubmit={onSearch}>
-                <input
-                  aria-label="Search terms"
-                  className="search-input"
-                  placeholder="Search by Chinese, Bengali, or English keyword"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-                <button className="primary-button" type="submit" disabled={loading}>
-                  {loading ? "Searching…" : "Search"}
-                </button>
-              </form>
+              <input
+                aria-label="Upload terms file"
+                type="file"
+                accept=".xlsx,.docx"
+                onChange={onUpload}
+                disabled={uploading}
+              />
+              {uploading && <div className="status-text">Uploading…</div>}
+            </div>
 
-              <div className="upload-panel" id="import">
-                <h2 style={{ marginTop: 0, fontSize: "1.1rem", color: "#1f2a44" }}>
-                  Import new terms
-                </h2>
-                <p className="subtle-text">
-                  Upload a .xlsx file with zh / bn / en columns or a .docx file
-                  formatted as 中文｜孟加拉语｜英文.
-                </p>
-                <input
-                  aria-label="Upload terms file"
-                  type="file"
-                  accept=".xlsx,.docx"
-                  onChange={onUpload}
-                  disabled={uploading}
-                />
-                {uploading && <div className="status-text">Uploading…</div>}
-              </div>
+            {error && <div className="status-text error-text">{error}</div>}
+            {infoMessage && !error && <div className="status-text">{infoMessage}</div>}
 
-              {error && <div className="status-text error-text">{error}</div>}
-              {infoMessage && !error && (
-                <div className="status-text">{infoMessage}</div>
+            <div className="results-table">
+              {loading && <div>Loading…</div>}
+              {!loading && results.length === 0 && !error && (
+                <div className="empty-state">
+                  {searchNotice ?? "Start by searching for a legal concept."}
+                </div>
               )}
-
-              <div className="results-list">
-                {loading && <div>Loading…</div>}
-                {!loading && results.length === 0 && !error && (
-                  <div className="empty-state">
-                    {searchNotice ?? "Start by searching for a legal concept."}
-                  </div>
-                )}
-                {!loading &&
-                  results.map((term, index) => (
-                    <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
-                      <div>
-                        <div className="term-label">中文</div>
-                        <p className="term-value">{term.zh}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">孟加拉语</div>
-                        <p className="term-value">{term.bn}</p>
-                      </div>
-                      <div>
-                        <div className="term-label">英文</div>
-                        <p className="term-value">{term.en}</p>
-                      </div>
-                    </article>
-                  ))}
-              </div>
-            </section>
-          </div>
+              {!loading &&
+                results.map((term, index) => (
+                  <article className="result-card" key={`${term.zh}-${term.bn}-${index}`}>
+                    <div>
+                      <div className="term-label">中文</div>
+                      <p className="term-value">{term.zh}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">孟加拉语</div>
+                      <p className="term-value">{term.bn}</p>
+                    </div>
+                    <div>
+                      <div className="term-label">英文</div>
+                      <p className="term-value">{term.en}</p>
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </section>
         </div>
       </main>
     </>
