@@ -2,28 +2,37 @@
 
 import { FormEvent, useState } from "react";
 
-type Term = {
-  zh: string;
-  bn: string;
-  en: string;
+type TermUsage = {
+  chinese: string;
+  english: string;
+  bengali: string;
+  contexts: {
+    zh?: string | null;
+    en?: string | null;
+    bn?: string | null;
+  };
+  explanation?: string | null;
+  source?: string | null;
+  article?: string | null;
 };
 
-type Scope = "all" | "zh" | "bn" | "en";
-
-const placeholders: Record<Scope, string> = {
-  all: "按中文、孟加拉语或英文关键词搜索",
-  zh: "按中文关键词搜索",
-  bn: "按孟加拉语关键词搜索",
-  en: "按英文关键词搜索",
+type Term = {
+  headword: string;
+  definitions: {
+    zh: string;
+    en: string;
+    bn: string;
+  };
+  usages: TermUsage[];
 };
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>("all");
   const [results, setResults] = useState<Term[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const placeholder = "按中文或孟加拉语关键词搜索术语";
 
   const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,15 +41,11 @@ export default function HomePage() {
     setHasSearched(true);
 
     try {
-      const params = new URLSearchParams();
       const trimmedQuery = query.trim();
+      const params = new URLSearchParams();
 
       if (trimmedQuery) {
         params.set("q", trimmedQuery);
-      }
-
-      if (scope !== "all") {
-        params.set("scope", scope);
       }
 
       const queryString = params.toString();
@@ -73,7 +78,7 @@ export default function HomePage() {
             中国法律翻译术语库
           </div>
           <div style={{ fontSize: "0.85rem", opacity: 0.85 }}>
-            中孟双语 · 在线词典
+            中孟法律术语 · 在线词典
           </div>
         </div>
         <nav className="site-nav">
@@ -108,7 +113,7 @@ export default function HomePage() {
               <input
                 aria-label="搜索术语"
                 className="search-input"
-                placeholder={placeholders[scope]}
+                placeholder={placeholder}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -117,24 +122,7 @@ export default function HomePage() {
               </button>
             </form>
 
-            <div className="filter-bar">
-              <label className="filter-label" htmlFor="language-scope">
-                语言范围
-              </label>
-              <select
-                id="language-scope"
-                className="scope-select"
-                value={scope}
-                onChange={(event) => setScope(event.target.value as Scope)}
-                aria-label="选择语言范围"
-              >
-                <option value="zh">按中文</option>
-                <option value="bn">按孟加拉语</option>
-                <option value="en">按英文</option>
-                <option value="all">全部</option>
-              </select>
-              <span className="result-count">共 {resultCount} 条结果</span>
-            </div>
+            <div className="result-summary">共 {resultCount} 条结果</div>
 
             {loading && <div className="status-text">搜索中…</div>}
 
@@ -146,22 +134,97 @@ export default function HomePage() {
 
             {!loading && !error && resultCount > 0 && (
               <div className="results-table">
-                {results.map((term, index) => (
-                  <article
-                    className="result-card"
-                    key={`${term.zh}-${term.bn}-${term.en}-${index}`}
-                  >
-                    <div>
-                      <div className="term-label">中文</div>
-                      <p className="term-value">{term.zh || "—"}</p>
-                    </div>
-                    <div>
-                      <div className="term-label">孟加拉语</div>
-                      <p className="term-value">{term.bn || "—"}</p>
-                    </div>
-                    <div>
-                      <div className="term-label">英文</div>
-                      <p className="term-value">{term.en || "—"}</p>
+                {results.map((term) => (
+                  <article className="dictionary-card" key={term.headword}>
+                    <header className="dictionary-card__header">
+                      <div>
+                        <h2 className="dictionary-card__title">{term.headword}</h2>
+                        <p className="dictionary-card__subtitle">
+                          中孟术语词条 · Multilingual Legal Term Entry
+                        </p>
+                      </div>
+                    </header>
+
+                    <section className="definition-grid">
+                      <div className="definition-block">
+                        <span className="term-label">中文释义</span>
+                        <p className="term-value">{term.definitions.zh}</p>
+                      </div>
+                      <div className="definition-block">
+                        <span className="term-label">英文释义</span>
+                        <p className="term-value">{term.definitions.en}</p>
+                      </div>
+                      <div className="definition-block">
+                        <span className="term-label">孟加拉语释义</span>
+                        <p className="term-value">{term.definitions.bn}</p>
+                      </div>
+                    </section>
+
+                    <div className="usage-list">
+                      {term.usages.map((usage, index) => (
+                        <section
+                          className="usage-card"
+                          key={`${term.headword}-${usage.chinese}-${index}`}
+                        >
+                          <div className="usage-languages">
+                            <div>
+                              <span className="term-label">中文</span>
+                              <p className="term-value">{usage.chinese || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="term-label">英文</span>
+                              <p className="term-value">{usage.english || "—"}</p>
+                            </div>
+                            <div>
+                              <span className="term-label">孟加拉语</span>
+                              <p className="term-value">{usage.bengali || "—"}</p>
+                            </div>
+                          </div>
+
+                          <div className="context-section">
+                            <div>
+                              <span className="context-label">中文上下文</span>
+                              <p className="context-value">
+                                {usage.contexts.zh || "暂无"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="context-label">英文上下文</span>
+                              <p className="context-value">
+                                {usage.contexts.en || "暂无"}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="context-label">孟加拉语上下文</span>
+                              <p className="context-value">
+                                {usage.contexts.bn || "暂无"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {usage.explanation && (
+                            <div className="explanation-block">
+                              <span className="context-label">解释</span>
+                              <p className="context-value">{usage.explanation}</p>
+                            </div>
+                          )}
+
+                          {(usage.source || usage.article) && (
+                            <footer className="metadata-row">
+                              {usage.source && (
+                                <span className="metadata-item">
+                                  来源信息：{usage.source}
+                                </span>
+                              )}
+                              {usage.article && (
+                                <span className="metadata-item">
+                                  条目：{usage.article}
+                                </span>
+                              )}
+                            </footer>
+                          )}
+                        </section>
+                      ))}
                     </div>
                   </article>
                 ))}
