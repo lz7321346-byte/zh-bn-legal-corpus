@@ -1,1 +1,51 @@
-[]
+[
+  {
+    "headword": "宪法",
+    "definitions": {
+      "zh": "国家的根本法，规定国家根本制度和根本任务的法律文件",
+      "en": "The fundamental law of a state that defines its basic system and duties",
+      "bn": "একটি রাষ্ট্রের মৌলিক ব্যবস্থা ও দায়িত্ব নির্ধারণকারী মৌলিক আইন"
+    },
+    "usages": [
+      {
+        "chinese": "宪法和法律",
+        "english": "Constitution and laws",
+        "bengali": "সংবিধান ও আইন",
+        "contexts": {
+          "zh": "遵守宪法和法律",
+          "en": "Abide by the Constitution and laws",
+          "bn": "সংবিধান ও আইন মেনে চলা"
+        },
+        "explanation": "国家的根本法和其他法律规范的总称，具有最高法律效力",
+        "source": "中华人民共和国海警法(2021)",
+        "article": "Article 7"
+      },
+      {
+        "chinese": "宪法修正案",
+        "english": "Amendment to the Constitution",
+        "bengali": "সংবিধান সংশোধনী",
+        "contexts": {
+          "zh": "《中华人民共和国宪法修正案》",
+          "en": "Amendment to the Constitution of the People's Republic of China",
+          "bn": "গণপ্রজাতন্ত্রী চীনের সংবিধান সংশোধনী"
+        },
+        "explanation": "对宪法内容进行修改或补充的法律文件",
+        "source": "中华人民共和国宪法(2018)",
+        "article": "Article 0"
+      },
+      {
+        "chinese": "宪法尊严",
+        "english": "Sanctity of the Constitution",
+        "bengali": "সংবিধানের মর্যাদা",
+        "contexts": {
+          "zh": "负有维护宪法尊严、保证宪法实施的职责",
+          "en": "Have a duty to uphold the sanctity of the Constitution and ensure its compliance",
+          "bn": "সংবিধানের মর্যাদা রক্ষা ও বাস্তবায়ন নিশ্চিত করার দায়িত্ব পালন করা"
+        },
+        "explanation": "宪法应受到尊重和维护的权威性",
+        "source": "中华人民共和国宪法(2018)",
+        "article": "Article 0"
+      }
+    ]
+  }
+]

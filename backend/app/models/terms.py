@@ -1,28 +1,85 @@
-"""Domain models and storage for legal terms."""
+"""Domain models and storage helpers for enriched legal terms."""
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable
 
 from pydantic import BaseModel, Field, field_validator
 
 
-class Term(BaseModel):
-    """Pydantic representation of a legal term entry."""
+def _strip_text(value: str | None) -> str | None:
+    if isinstance(value, str):
+        return value.strip()
+    return value
 
-    zh: str = Field(..., description="Chinese term")
-    bn: str = Field(..., description="Bengali term")
-    en: str = Field(..., description="English translation")
 
-    @field_validator("zh", "bn", "en", mode="before")
+class TermDefinition(BaseModel):
+    """Tri-lingual definition text for a headword."""
+
+    zh: str = Field(..., description="Chinese definition")
+    en: str = Field(..., description="English definition")
+    bn: str = Field(..., description="Bengali definition")
+
+    @field_validator("zh", "en", "bn", mode="before")
     @classmethod
     def _strip(cls, value: str) -> str:
-        if isinstance(value, str):
-            return value.strip()
-        return value
+        stripped = _strip_text(value)
+        if stripped is None:
+            raise ValueError("Definition text cannot be empty")
+        return stripped
+
+
+class TermContext(BaseModel):
+    """Contextual sentences for each supported language."""
+
+    zh: str | None = Field(default=None, description="Chinese context")
+    en: str | None = Field(default=None, description="English context")
+    bn: str | None = Field(default=None, description="Bengali context")
+
+    @field_validator("zh", "en", "bn", mode="before")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_text(value)
+
+
+class TermUsage(BaseModel):
+    """Contextualised usage of a headword mapped to source metadata."""
+
+    chinese: str = Field(..., description="Chinese expression containing the headword")
+    english: str = Field(..., description="English rendering of the expression")
+    bengali: str = Field(..., description="Bengali rendering of the expression")
+    contexts: TermContext = Field(
+        default_factory=TermContext, description="Contextual sentences for the expression"
+    )
+    explanation: str | None = Field(
+        default=None, description="Additional explanation for this specific usage"
+    )
+    source: str | None = Field(default=None, description="Source document for the usage")
+    article: str | None = Field(default=None, description="Article or clause reference")
+
+    @field_validator("chinese", "english", "bengali", "explanation", "source", "article", mode="before")
+    @classmethod
+    def _strip(cls, value: str | None) -> str | None:
+        return _strip_text(value)
+
+
+class Term(BaseModel):
+    """Structured legal terminology entry with multilingual context."""
+
+    headword: str = Field(..., description="Canonical Chinese headword")
+    definitions: TermDefinition = Field(..., description="Definitions in three languages")
+    usages: list[TermUsage] = Field(default_factory=list, description="Usage examples")
+
+    @field_validator("headword", mode="before")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        stripped = _strip_text(value)
+        if not stripped:
+            raise ValueError("Headword cannot be empty")
+        return stripped
 
 
 @dataclass
@@ -65,11 +122,11 @@ class TermsRepository:
         """Merge new terms with the stored ones, avoiding duplicates."""
 
         existing_terms = self.load_terms()
-        seen = {(term.zh, term.bn, term.en) for term in existing_terms}
+        seen = {term.headword for term in existing_terms}
 
         added = 0
         for term in new_terms:
-            key = (term.zh, term.bn, term.en)
+            key = term.headword
             if key in seen:
                 continue
             existing_terms.append(term)
@@ -79,8 +136,8 @@ class TermsRepository:
         self.save_terms(existing_terms)
         return TermMergeResult(added=added, total=len(existing_terms))
 
-    def search(self, query: str | None, scope: Literal["zh", "bn", "en"] | None = None) -> list[Term]:
-        """Perform a case-insensitive substring search over the requested term fields."""
+    def search(self, query: str | None) -> list[Term]:
+        """Perform a case-insensitive substring search across headword, definitions and usages."""
 
         all_terms = self.load_terms()
         if not query:
@@ -88,18 +145,39 @@ class TermsRepository:
 
         normalized = query.casefold()
 
-        if scope is not None and scope not in {"zh", "bn", "en"}:
-            raise ValueError("Invalid search scope provided")
-
-        def fields_for(term: Term) -> list[str]:
-            if scope is None:
-                return [term.zh, term.bn, term.en]
-            return [getattr(term, scope)]
+        def iter_fields(term: Term) -> Iterable[str]:
+            yield term.headword
+            yield term.definitions.zh
+            yield term.definitions.en
+            yield term.definitions.bn
+            for usage in term.usages:
+                yield usage.chinese
+                yield usage.english
+                yield usage.bengali
+                if usage.explanation:
+                    yield usage.explanation
+                if usage.source:
+                    yield usage.source
+                if usage.article:
+                    yield usage.article
+                if usage.contexts.zh:
+                    yield usage.contexts.zh
+                if usage.contexts.en:
+                    yield usage.contexts.en
+                if usage.contexts.bn:
+                    yield usage.contexts.bn
 
         def matches(term: Term) -> bool:
-            return any(normalized in field.casefold() for field in fields_for(term))
+            return any(normalized in field.casefold() for field in iter_fields(term))
 
         return [term for term in all_terms if matches(term)]
 
 
-__all__ = ["Term", "TermMergeResult", "TermsRepository"]
+__all__ = [
+    "Term",
+    "TermDefinition",
+    "TermContext",
+    "TermUsage",
+    "TermMergeResult",
+    "TermsRepository",
+]
