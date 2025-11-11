@@ -1,0 +1,9 @@
+backend/
+*.py
+pyproject.toml
+Dockerfile
+docker-compose.yml
+tests/
+*.md
+start-backend.ps1
+
