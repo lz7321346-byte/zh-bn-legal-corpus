@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
+from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -115,8 +118,24 @@ class TermsRepository:
         """Persist the provided terms back to storage."""
 
         serialized = [term.model_dump() for term in terms]
-        with self.storage_path.open("w", encoding="utf-8") as fp:
-            json.dump(serialized, fp, ensure_ascii=False, indent=2)
+        temp_path: Path | None = None
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", dir=self.storage_path.parent, delete=False
+            ) as temp_file:
+                temp_path = Path(temp_file.name)
+                json.dump(serialized, temp_file, ensure_ascii=False, indent=2)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+
+            assert temp_path is not None
+            temp_path.replace(self.storage_path)
+        except Exception:
+            if temp_path is not None:
+                with suppress(OSError):
+                    temp_path.unlink(missing_ok=True)
+            raise
 
     def merge_terms(self, new_terms: Iterable[Term]) -> TermMergeResult:
         """Merge new terms with the stored ones, avoiding duplicates."""

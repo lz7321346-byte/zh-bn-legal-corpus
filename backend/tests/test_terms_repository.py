@@ -3,6 +3,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 MODULE_PATH = Path(__file__).resolve().parents[1] / "app" / "models" / "terms.py"
 spec = importlib.util.spec_from_file_location("terms_module", MODULE_PATH)
 terms_module = importlib.util.module_from_spec(spec)
@@ -111,3 +113,41 @@ def test_search_handles_missing_query(tmp_path: Path) -> None:
     repository = TermsRepository(storage_path)
 
     assert repository.search(None) == terms
+
+
+def test_save_terms_uses_atomic_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage_path = tmp_path / "terms.json"
+    repository = TermsRepository(storage_path)
+    terms = [
+        build_term(
+            "仲裁",
+            "由仲裁机构解决民商事纠纷",
+            "Resolution of civil and commercial disputes by an arbitral body",
+            "একটি সালিশি সংস্থার মাধ্যমে দেওয়ানি ও বাণিজ্যিক বিরোধের সমাধান",
+            [
+                {
+                    "chinese": "商事仲裁",
+                    "english": "commercial arbitration",
+                    "bengali": "বাণিজ্য সালিশি",
+                }
+            ],
+        )
+    ]
+
+    original_dump = terms_module.json.dump
+
+    def failing_dump(*args, **kwargs):
+        raise RuntimeError("simulated write failure")
+
+    monkeypatch.setattr(terms_module.json, "dump", failing_dump)
+
+    with pytest.raises(RuntimeError, match="write failure"):
+        repository.save_terms(terms)
+
+    assert not any(tmp_path.iterdir())
+
+    monkeypatch.setattr(terms_module.json, "dump", original_dump)
+
+    repository.save_terms(terms)
+    assert storage_path.exists()
+    assert repository.load_terms() == terms
